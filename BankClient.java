@@ -10,7 +10,7 @@ import java.net.UnknownHostException;
 import java.nio.file.Paths;
 import java.util.*;
 
-public class BankClient 
+public class BankClient
 {
 	public static void main(String[] args) throws UnknownHostException, IOException, ClassNotFoundException, InterruptedException
 	{
@@ -31,10 +31,10 @@ public class BankClient
 			String hostName=configFileArr[0];
 			int serverId=Integer.parseInt(configFileArr[1]);
 			int serverPort=Integer.parseInt(configFileArr[2]);
-			ServerDirectory newServerInfo=new ServerDirectory(hostName, serverId, serverPort);	
-			serverList.add(newServerInfo);	
+			ServerDirectory newServerInfo=new ServerDirectory(hostName, serverId, serverPort);
+			serverList.add(newServerInfo);
 		}
-		
+
 		System.out.println("TCP CLIENT STARTED");
 
 		// MULTI-THREADED EXECUTION
@@ -51,13 +51,13 @@ public class BankClient
 			}
 		}
 
-		for (Thread thread:threadList) 
+		for (Thread thread:threadList)
 		{
             try
             {
                 thread.join();
             }
-            catch (Exception e) 
+            catch (Exception e)
             {
                 System.out.println(e);
             }
@@ -65,16 +65,16 @@ public class BankClient
 
         // HALT OPERATION
         Thread.sleep(15000);
-        
+
         System.out.println("HALT OPERATION: ");
-		Socket incoming=new Socket("localhost", serverList.get(0).getServerPort());
+		////Socket incoming=new Socket("localhost", serverList.get(0).getServerPort());
 		//java.io.InputStream inStream=incoming.getInputStream();
-		java.io.OutputStream outStream=incoming.getOutputStream();
-		ObjectOutputStream os=new ObjectOutputStream(outStream);
+	//	java.io.OutputStream outStream=incoming.getOutputStream();
+	//	ObjectOutputStream os=new ObjectOutputStream(outStream);
 		//ObjectInputStream oin=new ObjectInputStream(inStream);
-		HaltRequest haltrequest=new HaltRequest("HALT");
-		os.writeObject(haltrequest);
-		incoming.close();
-        fw.close();
+	//	HaltRequest haltrequest=new HaltRequest("HALT");
+//		os.writeObject(haltrequest);
+//		incoming.close();
+  //      fw.close();
 	}
 }

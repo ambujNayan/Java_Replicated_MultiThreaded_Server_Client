@@ -26,13 +26,13 @@ class Bank
 			Account newAccount=new Account();
 			newAccount.CreateAccount(accountNo, 0);
 			hashtable.put(accountNo, newAccount);
-			return accountNo;	
+			return accountNo;
 		}
 		finally
 		{
 			bankLock.unlock();
 		}
-		
+
 	}
 
 	public boolean Deposit(int UID, int amount)
@@ -46,7 +46,7 @@ class Bank
 				return true;
 			}
 			else
-				return false;	
+				return false;
 		}
 		finally
 		{
@@ -60,8 +60,8 @@ class Bank
 		try
 		{
 			if(hashtable.containsKey(UID))
-				return hashtable.get(UID).GetBalance();	
-			else 
+				return hashtable.get(UID).GetBalance();
+			else
 				return 0;
 		}
 		finally
@@ -80,14 +80,17 @@ class Bank
 				//while(hashtable.get(sourceUID).GetBalance()<amount)
 				//	sufficientFunds.await();
 				if(hashtable.get(sourceUID).GetBalance()<amount)
+				{
+					System.out.println("Balance less than asked for transfer");
 					return false;
+				}
 				int sourceAmount=hashtable.get(sourceUID).GetBalance()-amount;
 				hashtable.get(sourceUID).SetBalance(sourceAmount);
 				int targetAmount=hashtable.get(targetUID).GetBalance()+amount;
 				hashtable.get(targetUID).SetBalance(targetAmount);
 				//sufficientFunds.signalAll();
 				return true;
-			}	
+			}
 			else
 				return false;
 		}

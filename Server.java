@@ -23,7 +23,7 @@ public class Server
     Scanner configFileIn = new Scanner(Paths.get(configFilePath));
 
     ArrayList<ServerDirectory> serverList=new ArrayList<ServerDirectory>();
-
+    int noOfRequests=0;
     String localHostName="";
     int localServerPort=0;
 
@@ -39,8 +39,8 @@ public class Server
 
       if(serverId!=localServerId)
       {
-        ServerDirectory newServerInfo=new ServerDirectory(hostName, serverId, serverPort);  
-        serverList.add(newServerInfo);  
+        ServerDirectory newServerInfo=new ServerDirectory(hostName, serverId, serverPort);
+        serverList.add(newServerInfo);
       }
       else
       {
@@ -75,12 +75,32 @@ public class Server
       ServerSocket s=new ServerSocket(localServerPort);
       Date date=new Date();
       System.out.println("TCP SERVER " + localServerId + " STARTED");
+      List<Thread> threadlist = new ArrayList<Thread>();
       for (;;)
       {
         Socket incoming=s.accept();
         AccountHandler r=new AccountHandler(incoming, bank, serverList, lamportClock, localQueue, ackList, localServerId, s, fw, date);
+        noOfRequests++;
         Thread t=new Thread(r);
         t.start();
+        threadlist.add(t);
+
+        if(noOfRequests>=2400)
+          {
+            System.out.println("no of requests got 2400");
+            break;
+          }
+      }
+      try{
+          for(Thread each : threadlist){
+          each.join();
+        }
+        s.close();
+      }catch(InterruptedException e){
+
+      }
+      for(int m=0;m<10;m++){
+          System.out.println("The accound "+(m+1)+" has balance: "+bank.GetBalance(m+1));
       }
     }
     catch (IOException localIOException)
