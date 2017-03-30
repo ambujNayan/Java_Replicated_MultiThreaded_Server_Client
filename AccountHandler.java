@@ -124,6 +124,8 @@ public class AccountHandler implements Runnable
 							ObjectOutputStream osX=new ObjectOutputStream(outStreamX);
 							numThreads=localQueue.peek().getNumThreads();
 
+							TransferResponse haltresponse=new TransferResponse("HaltResponse", 0, 0, 0, true);
+							clResponseList.add(haltresponse);
 							osX.writeObject(clResponseList);
 							outgoing.close();
 						    halt=true;
@@ -243,15 +245,13 @@ public class AccountHandler implements Runnable
 										ObjectOutputStream osX=new ObjectOutputStream(outStreamX);
 										numThreads=localQueue.peek().getNumThreads();
 
-										osX.writeObject(clResponseList);
-
-										/*
 										if(localServerId==0)
 										{
 											TransferResponse haltresponse=new TransferResponse("HaltResponse", 0, 0, 0, true);
-											osX.writeObject(haltresponse);
-										}*/
+											clResponseList.add(haltresponse);
+										}
 
+										osX.writeObject(clResponseList);
 										outgoing.close();
 
 									    halt=true;
@@ -332,13 +332,13 @@ public class AccountHandler implements Runnable
 										ObjectOutputStream osX=new ObjectOutputStream(outStreamX);
 										numThreads=localQueue.peek().getNumThreads();
 
-										osX.writeObject(clResponseList);
-		
-										/*if(localServerId==0)
+										if(localServerId==0)
 										{
 											TransferResponse haltresponse=new TransferResponse("HaltResponse", 0, 0, 0, true);
-											osX.writeObject(haltresponse);
-										}*/
+											clResponseList.add(haltresponse);
+										}
+
+										osX.writeObject(clResponseList);
 
 										outgoing.close();
 									    halt=true;

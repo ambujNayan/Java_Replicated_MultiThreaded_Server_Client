@@ -84,7 +84,7 @@ public class BankClient
         Thread.sleep(20000);
 
         System.out.println("HALT OPERATION: ");
-		Socket incoming=new Socket("localhost", serverList.get(0).getServerPort());
+		Socket incoming=new Socket(serverList.get(0).getHostName(), serverList.get(0).getServerPort());
 		java.io.OutputStream outStream=incoming.getOutputStream();
 		ObjectOutputStream os=new ObjectOutputStream(outStream);
 		HaltRequest haltrequest=new HaltRequest("HALT", ipAddr, 9000, numThreads);

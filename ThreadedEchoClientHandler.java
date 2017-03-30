@@ -40,7 +40,7 @@ class ThreadedEchoClientHandler implements Runnable
 					if(serverList.get(k).getServerId()==serverId)
 						break;
 
-				Socket incoming=new Socket("localhost", serverList.get(k).getServerPort());
+				Socket incoming=new Socket(serverList.get(k).getHostName(), serverList.get(k).getServerPort());
 
 				int fromUID = (int )(Math.random() * 10 + 1);
 				int toUID = (int )(Math.random() * 10 + 1);
