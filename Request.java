@@ -7,12 +7,14 @@ class Request implements Serializable
 	private String requestName;
 	private InetAddress clientName;
     private int clientPort;
+    private int numThreads;
 
-	public Request(String requestName, InetAddress clientName, int clientPort)
+	public Request(String requestName, InetAddress clientName, int clientPort, int numThreads)
 	{
 		this.requestName=requestName;
 		this.clientName=clientName;
 		this.clientPort=clientPort;
+		this.numThreads=numThreads;
 	}
 
 	public String getRequestName()
@@ -28,5 +30,10 @@ class Request implements Serializable
 	public int getPort()
 	{
 		return clientPort;
+	}
+
+	public int getNumThreads()
+	{
+		return numThreads;
 	}
 }

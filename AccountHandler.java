@@ -27,6 +27,7 @@ public class AccountHandler implements Runnable
 	private PrintWriter fw;
 	private Date date;
 	private List<TransferResponse> clResponseList;
+	private int numThreads;
 
 	public AccountHandler(Socket incoming, Bank bank, ArrayList<ServerDirectory> serverList, LamportClock lamportClock, PriorityBlockingQueue<UniversalRequest> localQueue, List<Integer> ackList, int localServerId, ServerSocket s, PrintWriter fw, Date date, List<TransferResponse> clResponseList)
 	{
@@ -66,7 +67,7 @@ public class AccountHandler implements Runnable
 						fw.println("MULTI-THREADED CLIENT "+"CLIENT-REQ "+(new SimpleDateFormat("yyyyMMdd_HHmmss").format(Calendar.getInstance().getTime()))+" "+lamportClock.getClockValue()+" "+localServerId+" TRANSFER "+transferrequest.getFromUID()+" "+transferrequest.getToUID()+" "+transferrequest.getAmount());
 						fw.flush();
 
-						newUniversalRequest=new UniversalRequest("ServerRequest", transferrequest.getclientName(), transferrequest.getPort(), true, lamportClock.getClockValue(), localServerId, transferrequest, false);
+						newUniversalRequest=new UniversalRequest("ServerRequest", transferrequest.getclientName(), transferrequest.getPort(), transferrequest.getNumThreads(), true, lamportClock.getClockValue(), localServerId, transferrequest, false);
 						localQueue.add(newUniversalRequest);
 
 						if(serverList.size()==0)
@@ -105,7 +106,7 @@ public class AccountHandler implements Runnable
 					{
 					  	lamportClock.setClockValue(lamportClock.getClockValue()+20000);
 
-						newUniversalRequest9=new UniversalRequest("ServerRequest", haltrequest.getclientName(), haltrequest.getPort(), true, lamportClock.getClockValue(), localServerId, null, true);
+						newUniversalRequest9=new UniversalRequest("ServerRequest", haltrequest.getclientName(), haltrequest.getPort(), haltrequest.getNumThreads(), true, lamportClock.getClockValue(), localServerId, null, true);
 						localQueue.add(newUniversalRequest9);
 
 						if(serverList.size()==0)
@@ -121,6 +122,7 @@ public class AccountHandler implements Runnable
 							Socket outgoing=new Socket(localQueue.peek().getclientName().getHostAddress(), localQueue.peek().getPort());
 							java.io.OutputStream outStreamX=outgoing.getOutputStream();
 							ObjectOutputStream osX=new ObjectOutputStream(outStreamX);
+							numThreads=localQueue.peek().getNumThreads();
 
 							osX.writeObject(clResponseList);
 							outgoing.close();
@@ -160,7 +162,7 @@ public class AccountHandler implements Runnable
 							fw.println("MULTI-THREADED CLIENT "+"SRV-REQ "+localServerId+" "+(new SimpleDateFormat("yyyyMMdd_HHmmss").format(Calendar.getInstance().getTime()))+" "+newUniversalRequest1.getClockValue()+" "+newUniversalRequest1.getServerId()+" TRANSFER "+newUniversalRequest1.getTransferRequest().getFromUID()+" "+newUniversalRequest1.getTransferRequest().getToUID()+" "+newUniversalRequest1.getTransferRequest().getAmount());
 							fw.flush();
 						}
-						UniversalRequest localNewRequest=new UniversalRequest("ServerRequest", newUniversalRequest1.getclientName(), newUniversalRequest1.getPort(), false, newUniversalRequest1.getClockValue(), newUniversalRequest1.getServerId(), newUniversalRequest1.getTransferRequest(), newUniversalRequest1.getIsHalt());
+						UniversalRequest localNewRequest=new UniversalRequest("ServerRequest", newUniversalRequest1.getclientName(), newUniversalRequest1.getPort(), newUniversalRequest1.getNumThreads(), false, newUniversalRequest1.getClockValue(), newUniversalRequest1.getServerId(), newUniversalRequest1.getTransferRequest(), newUniversalRequest1.getIsHalt());
 						localQueue.add(localNewRequest);
 					
 						synchronized(ackList)
@@ -174,7 +176,7 @@ public class AccountHandler implements Runnable
 							Socket s9=new Socket(serverList.get(k).getHostName(), serverList.get(k).getServerPort());
 							OutputStream outStream9=s9.getOutputStream();
 							ObjectOutputStream os9=new ObjectOutputStream(outStream9);
-							AckRequest ackRequest9=new AckRequest("AckRequest", newUniversalRequest1.getclientName(), newUniversalRequest1.getPort(), lamportClock.getClockValue(), localServerId, newUniversalRequest1);
+							AckRequest ackRequest9=new AckRequest("AckRequest", newUniversalRequest1.getclientName(), newUniversalRequest1.getPort(), newUniversalRequest1.getNumThreads(), lamportClock.getClockValue(), localServerId, newUniversalRequest1);
 							try
 							{
 								os9.writeObject(ackRequest9);
@@ -239,6 +241,7 @@ public class AccountHandler implements Runnable
 									    Socket outgoing=new Socket(localQueue.peek().getclientName().getHostAddress(), localQueue.peek().getPort());
 									    java.io.OutputStream outStreamX=outgoing.getOutputStream();
 										ObjectOutputStream osX=new ObjectOutputStream(outStreamX);
+										numThreads=localQueue.peek().getNumThreads();
 
 										osX.writeObject(clResponseList);
 
@@ -327,6 +330,7 @@ public class AccountHandler implements Runnable
 
 									    java.io.OutputStream outStreamX=outgoing.getOutputStream();
 										ObjectOutputStream osX=new ObjectOutputStream(outStreamX);
+										numThreads=localQueue.peek().getNumThreads();
 
 										osX.writeObject(clResponseList);
 		
@@ -366,7 +370,8 @@ public class AccountHandler implements Runnable
 			if(halt)
 			{
 				Date currDate=new Date();
-				System.out.println("Average in milliseconds: "+((currDate.getTime()-date.getTime())/2400));
+				System.out.println("numThreads: "+numThreads);
+				System.out.println("Average in milliseconds for each request: "+((currDate.getTime()-date.getTime())/(numThreads*100)));
 				s.close();
 			}
 		}

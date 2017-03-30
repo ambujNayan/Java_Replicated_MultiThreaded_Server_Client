@@ -3,8 +3,8 @@ import java.net.UnknownHostException;
 
 class HaltRequest extends Request
 {
-	public HaltRequest(String requestName, InetAddress clientName, int clientPort)
+	public HaltRequest(String requestName, InetAddress clientName, int clientPort, int numThreads)
 	{
-		super(requestName, clientName, clientPort);
+		super(requestName, clientName, clientPort, numThreads);
 	}
 }

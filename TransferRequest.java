@@ -7,9 +7,9 @@ class TransferRequest extends Request
 	private int toUID;
 	private int amount;
 
-	public TransferRequest(String requestName, InetAddress clientName, int clientPort, int fromUID, int toUID, int amount)
+	public TransferRequest(String requestName, InetAddress clientName, int clientPort, int numThreads, int fromUID, int toUID, int amount)
 	{
-		super(requestName, clientName, clientPort);
+		super(requestName, clientName, clientPort, numThreads);
 		this.fromUID=fromUID;
 		this.toUID=toUID;
 		this.amount=amount;

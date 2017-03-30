@@ -1,0 +1,5 @@
+Number of Servers	Num of Requests Per Server  Time taken to execute a single request
+-----------------   --------------------------  --------------------------------------
+	1               800 (8 Threads * 100 Ops)    41
+	3				800 (8 Threads * 100 Ops)	 (66+44+36)/3 = 
+	5				800 (8 Threads * 100 Ops)    (96+61+53+82+73)/5 = 

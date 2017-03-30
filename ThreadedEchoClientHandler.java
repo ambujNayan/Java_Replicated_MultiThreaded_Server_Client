@@ -16,13 +16,15 @@ class ThreadedEchoClientHandler implements Runnable
 	private ArrayList<ServerDirectory> serverList;
 	private PrintWriter fw;
 	private InetAddress ipAddr;
+	private int numThreads;
 
-	public ThreadedEchoClientHandler(int numOperations, ArrayList<ServerDirectory> serverList, PrintWriter fw, InetAddress ipAddr)
+	public ThreadedEchoClientHandler(int numOperations, ArrayList<ServerDirectory> serverList, PrintWriter fw, InetAddress ipAddr, int numThreads)
 	{
 		this.numOperations=numOperations;
 		this.serverList=serverList;
 		this.fw=fw;
 		this.ipAddr= ipAddr;
+		this.numThreads=numThreads;
 	}
 
 	@Override public void run()
@@ -44,7 +46,7 @@ class ThreadedEchoClientHandler implements Runnable
 				int toUID = (int )(Math.random() * 10 + 1);
 				java.io.OutputStream outStream=incoming.getOutputStream();
 				ObjectOutputStream os=new ObjectOutputStream(outStream);
-				TransferRequest transferrequest=new TransferRequest("TransferRequest", ipAddr, 9000, fromUID, toUID, 10);
+				TransferRequest transferrequest=new TransferRequest("TransferRequest", ipAddr, 9000, numThreads, fromUID, toUID, 10);
 
 				fw.println("MULTI-THREADED CLIENT "+serverId+" "+(new SimpleDateFormat("yyyyMMdd_HHmmss").format(Calendar.getInstance().getTime()))+" TRANSFER "+fromUID+" "+toUID+" "+10);
 				fw.flush();

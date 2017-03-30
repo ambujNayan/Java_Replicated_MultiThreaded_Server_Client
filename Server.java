@@ -67,6 +67,7 @@ public class Server
 
     List<Integer> ackList=Collections.synchronizedList(new ArrayList<Integer>());
     List<TransferResponse> clResponseList=Collections.synchronizedList(new ArrayList<TransferResponse>());
+    int numThreads=0;
 
     for(int i=0; i<serverList.size()+1; i++)
     	ackList.add(i, -1);

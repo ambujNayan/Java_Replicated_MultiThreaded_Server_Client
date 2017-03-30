@@ -60,7 +60,7 @@ public class BankClient
 			int k=1;
 			for(int i=0;i<numThreads;i++)
 			{
-				ThreadedEchoClientHandler r=new ThreadedEchoClientHandler(100, serverList, fw, ipAddr);
+				ThreadedEchoClientHandler r=new ThreadedEchoClientHandler(100, serverList, fw, ipAddr, numThreads);
 				Thread t=new Thread(r);
 				t.start();
 				threadList.add(t);
@@ -81,13 +81,13 @@ public class BankClient
         }
 
         // HALT OPERATION
-        Thread.sleep(15000);
+        Thread.sleep(20000);
 
         System.out.println("HALT OPERATION: ");
 		Socket incoming=new Socket("localhost", serverList.get(0).getServerPort());
 		java.io.OutputStream outStream=incoming.getOutputStream();
 		ObjectOutputStream os=new ObjectOutputStream(outStream);
-		HaltRequest haltrequest=new HaltRequest("HALT", ipAddr, 9000);
+		HaltRequest haltrequest=new HaltRequest("HALT", ipAddr, 9000, numThreads);
 		os.writeObject(haltrequest);
 		incoming.close();
   		//fw.close();
