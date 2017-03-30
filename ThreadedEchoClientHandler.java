@@ -44,7 +44,7 @@ class ThreadedEchoClientHandler implements Runnable
 				int toUID = (int )(Math.random() * 10 + 1);
 				java.io.OutputStream outStream=incoming.getOutputStream();
 				ObjectOutputStream os=new ObjectOutputStream(outStream);
-				TransferRequest transferrequest=new TransferRequest("TransferRequest", fromUID, toUID, 10, ipAddr, 9000);
+				TransferRequest transferrequest=new TransferRequest("TransferRequest", ipAddr, 9000, fromUID, toUID, 10);
 
 				fw.println("MULTI-THREADED CLIENT "+serverId+" "+(new SimpleDateFormat("yyyyMMdd_HHmmss").format(Calendar.getInstance().getTime()))+" TRANSFER "+fromUID+" "+toUID+" "+10);
 				fw.flush();

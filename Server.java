@@ -28,8 +28,6 @@ public class Server
     int noOfRequests=0;
     String localHostName="";
     int localServerPort=0;
-    InetAddress clientname =null;
-    Integer clientport=0;
 
     while(configFileIn.hasNextLine())
     {
@@ -82,7 +80,7 @@ public class Server
       for (;;)
       {
         Socket incoming=s.accept();
-        AccountHandler r=new AccountHandler(incoming, bank, serverList, lamportClock, localQueue, ackList, localServerId, s, fw, date, clResponseList, clientname, clientport);
+        AccountHandler r=new AccountHandler(incoming, bank, serverList, lamportClock, localQueue, ackList, localServerId, s, fw, date, clResponseList);
         noOfRequests++;
         Thread t=new Thread(r);
         t.start();

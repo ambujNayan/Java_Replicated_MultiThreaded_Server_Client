@@ -87,7 +87,7 @@ public class BankClient
 		Socket incoming=new Socket("localhost", serverList.get(0).getServerPort());
 		java.io.OutputStream outStream=incoming.getOutputStream();
 		ObjectOutputStream os=new ObjectOutputStream(outStream);
-		HaltRequest haltrequest=new HaltRequest("HALT");
+		HaltRequest haltrequest=new HaltRequest("HALT", ipAddr, 9000);
 		os.writeObject(haltrequest);
 		incoming.close();
   		//fw.close();
