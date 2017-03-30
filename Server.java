@@ -11,6 +11,8 @@ import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.SynchronousQueue;
 import java.io.PrintWriter;
 import java.util.Date;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 
 public class Server
 {
@@ -26,6 +28,8 @@ public class Server
     int noOfRequests=0;
     String localHostName="";
     int localServerPort=0;
+    InetAddress clientname =null;
+    Integer clientport=0;
 
     while(configFileIn.hasNextLine())
     {
@@ -61,11 +65,10 @@ public class Server
     }
 
     LamportClock lamportClock=new LamportClock();
-    //LocalQueue localQueue=new LocalQueue();
     PriorityBlockingQueue<UniversalRequest> localQueue=new PriorityBlockingQueue<UniversalRequest>();
-    // HashMap localHashMap = new HashMap();
 
     List<Integer> ackList=Collections.synchronizedList(new ArrayList<Integer>());
+    List<TransferResponse> clResponseList=Collections.synchronizedList(new ArrayList<TransferResponse>());
 
     for(int i=0; i<serverList.size()+1; i++)
     	ackList.add(i, -1);
@@ -79,28 +82,11 @@ public class Server
       for (;;)
       {
         Socket incoming=s.accept();
-        AccountHandler r=new AccountHandler(incoming, bank, serverList, lamportClock, localQueue, ackList, localServerId, s, fw, date);
+        AccountHandler r=new AccountHandler(incoming, bank, serverList, lamportClock, localQueue, ackList, localServerId, s, fw, date, clResponseList, clientname, clientport);
         noOfRequests++;
         Thread t=new Thread(r);
         t.start();
         threadlist.add(t);
-
-        if(noOfRequests>=2400)
-          {
-            System.out.println("no of requests got 2400");
-            break;
-          }
-      }
-      try{
-          for(Thread each : threadlist){
-          each.join();
-        }
-        s.close();
-      }catch(InterruptedException e){
-
-      }
-      for(int m=0;m<10;m++){
-          System.out.println("The accound "+(m+1)+" has balance: "+bank.GetBalance(m+1));
       }
     }
     catch (IOException localIOException)

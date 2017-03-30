@@ -4,14 +4,16 @@ class UniversalRequest extends Request implements Comparable<UniversalRequest>
 	private int clock;
 	private int serverId;
 	private TransferRequest transferrequest;
+	private boolean isHalt;
 
-	public UniversalRequest(String requestName, boolean ownRequest, int clock, int serverId, TransferRequest transferrequest)
+	public UniversalRequest(String requestName, boolean ownRequest, int clock, int serverId, TransferRequest transferrequest, boolean isHalt)
 	{
 		super(requestName);
 		this.ownRequest=ownRequest;
 		this.clock=clock;
 		this.serverId=serverId;
 		this.transferrequest=transferrequest;
+		this.isHalt=isHalt;
 	}
 
 
@@ -48,5 +50,10 @@ class UniversalRequest extends Request implements Comparable<UniversalRequest>
 	public int getServerId()
 	{
 		return serverId;
+	}
+
+	public boolean getIsHalt()
+	{
+		return isHalt;
 	}
 }

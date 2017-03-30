@@ -8,6 +8,8 @@ import java.util.concurrent.SynchronousQueue;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 
 import org.omg.CORBA.portable.InputStream;
 
@@ -24,8 +26,12 @@ public class AccountHandler implements Runnable
 	private boolean halt;
 	private PrintWriter fw;
 	private Date date;
+	private List<TransferResponse> clResponseList;
+	private InetAddress clientname;
+    private Integer clientport;
 
-	public AccountHandler(Socket incoming, Bank bank, ArrayList<ServerDirectory> serverList, LamportClock lamportClock, PriorityBlockingQueue<UniversalRequest> localQueue, List<Integer> ackList, int localServerId, ServerSocket s, PrintWriter fw, Date date)
+
+	public AccountHandler(Socket incoming, Bank bank, ArrayList<ServerDirectory> serverList, LamportClock lamportClock, PriorityBlockingQueue<UniversalRequest> localQueue, List<Integer> ackList, int localServerId, ServerSocket s, PrintWriter fw, Date date, List<TransferResponse> clResponseList, InetAddress clientname, Integer clientport)
 	{
 		this.incoming=incoming;
 		this.bank=bank;
@@ -38,6 +44,9 @@ public class AccountHandler implements Runnable
 		this.halt=false;
 		this.fw=fw;
 		this.date=date;
+		this.clResponseList=clResponseList;
+		this.clientname=clientname;
+		this.clientport=clientport;
 	}
 
 	@Override public void run()
@@ -48,8 +57,6 @@ public class AccountHandler implements Runnable
 		{
 			java.io.InputStream inStream=incoming.getInputStream();
 			ObjectInputStream oin=new ObjectInputStream(inStream);
-			//OutputStream outStream=incoming.getOutputStream();
-			//ObjectOutputStream os=new ObjectOutputStream(outStream);
 			Request request=(Request) oin.readObject();
 			String actionName=request.getRequestName();
 
@@ -57,53 +64,56 @@ public class AccountHandler implements Runnable
 			{
 				case "TransferRequest":
 					TransferRequest transferrequest=(TransferRequest) request;
+					if(clientname==null)
+					{
+						System.out.println("clientname changed");
+						clientname=transferrequest.getclientName();
+						clientport=transferrequest.getPort();
+					}
 					UniversalRequest newUniversalRequest;
 					synchronized(lamportClock)
 					{
-							lamportClock.setClockValue(lamportClock.getClockValue()+1);
-							fw.println("MULTI-THREADED CLIENT "+"CLIENT-REQ "+(new SimpleDateFormat("yyyyMMdd_HHmmss").format(Calendar.getInstance().getTime()))+" "+lamportClock.getClockValue()+" "+localServerId+" TRANSFER "+transferrequest.getFromUID()+" "+transferrequest.getToUID()+" "+transferrequest.getAmount());
-							fw.flush();
+						lamportClock.setClockValue(lamportClock.getClockValue()+1);
+						fw.println("MULTI-THREADED CLIENT "+"CLIENT-REQ "+(new SimpleDateFormat("yyyyMMdd_HHmmss").format(Calendar.getInstance().getTime()))+" "+lamportClock.getClockValue()+" "+localServerId+" TRANSFER "+transferrequest.getFromUID()+" "+transferrequest.getToUID()+" "+transferrequest.getAmount());
+						fw.flush();
 
-							newUniversalRequest=new UniversalRequest("ServerRequest", true, lamportClock.getClockValue(), localServerId, transferrequest);
-							localQueue.add(newUniversalRequest);
+						newUniversalRequest=new UniversalRequest("ServerRequest", true, lamportClock.getClockValue(), localServerId, transferrequest, false);
+						localQueue.add(newUniversalRequest);
 
-					if(serverList.size()==0)
-					{
-						bank.Transfer(transferrequest.getFromUID(), transferrequest.getToUID(), transferrequest.getAmount());
-						System.out.println("TRANSFER COMPLETE ");
-					}
-					else
-					{
-						for(int k=0; k<serverList.size(); k++)
+						if(serverList.size()==0)
 						{
-							Socket s1=new Socket(serverList.get(k).getHostName(), serverList.get(k).getServerPort());
-							OutputStream outStream1=s1.getOutputStream();
-							ObjectOutputStream os1=new ObjectOutputStream(outStream1);
-							try
-							{
-							//	fw.println("BROADCAST TO server "+ k+ "  "+(new SimpleDateFormat("yyyyMMdd_HHmmss").format(Calendar.getInstance().getTime()))+" "+lamportClock.getClockValue()+" "+localServerId+" TRANSFER "+transferrequest.getFromUID()+" "+transferrequest.getToUID()+" "+transferrequest.getAmount());
-								//fw.flush();
-								os1.writeObject(newUniversalRequest);
-							}
-							catch (IOException e)
-							{
-								//e.printStackTrace();
-							}
-							s1.close();
+							bank.Transfer(transferrequest.getFromUID(), transferrequest.getToUID(), transferrequest.getAmount());
+							System.out.println("TRANSFER COMPLETE ");
 						}
-					}
-				}
+						else
+						{
+							for(int k=0; k<serverList.size(); k++)
+							{
+								Socket s1=new Socket(serverList.get(k).getHostName(), serverList.get(k).getServerPort());
+								OutputStream outStream1=s1.getOutputStream();
+								ObjectOutputStream os1=new ObjectOutputStream(outStream1);
+								try
+								{
+									os1.writeObject(newUniversalRequest);
+								}
+								catch (IOException e)
+								{
+									//e.printStackTrace();
+								}
+								s1.close();
+							}
+						}
+				    }
 					break;
 
 				case "HALT":
-					//System.out.println("HALT");
 					HaltRequest haltrequest=(HaltRequest) request;
 					UniversalRequest newUniversalRequest9;
 					synchronized(lamportClock)
 					{
 					  	lamportClock.setClockValue(lamportClock.getClockValue()+20000);
 
-						  newUniversalRequest9=new UniversalRequest("ServerRequest", false, lamportClock.getClockValue(), localServerId, null);
+						  newUniversalRequest9=new UniversalRequest("ServerRequest", true, lamportClock.getClockValue(), localServerId, null, true);
 							localQueue.add(newUniversalRequest9);
 
 					if(serverList.size()==0)
@@ -149,77 +159,111 @@ public class AccountHandler implements Runnable
 							fw.println("MULTI-THREADED CLIENT "+"SRV-REQ "+localServerId+" "+(new SimpleDateFormat("yyyyMMdd_HHmmss").format(Calendar.getInstance().getTime()))+" "+newUniversalRequest1.getClockValue()+" "+newUniversalRequest1.getServerId()+" TRANSFER "+newUniversalRequest1.getTransferRequest().getFromUID()+" "+newUniversalRequest1.getTransferRequest().getToUID()+" "+newUniversalRequest1.getTransferRequest().getAmount());
 							fw.flush();
 						}
-						UniversalRequest localNewRequest=new UniversalRequest("ServerRequest", newUniversalRequest1.getOwnRequest(), newUniversalRequest1.getClockValue(), newUniversalRequest1.getServerId(), newUniversalRequest1.getTransferRequest());
+						UniversalRequest localNewRequest=new UniversalRequest("ServerRequest", false, newUniversalRequest1.getClockValue(), newUniversalRequest1.getServerId(), newUniversalRequest1.getTransferRequest(), newUniversalRequest1.getIsHalt());
 						localQueue.add(localNewRequest);
-					}
-					synchronized(ackList)
-					{
-						if(newUniversalRequest1.getClockValue()>ackList.get(newUniversalRequest1.getServerId()))
-							ackList.set(newUniversalRequest1.getServerId(), newUniversalRequest1.getClockValue()+1);
-					}
-
-					for(int k=0; k<serverList.size(); k++)
-					{
-						Socket s9=new Socket(serverList.get(k).getHostName(), serverList.get(k).getServerPort());
-						OutputStream outStream9=s9.getOutputStream();
-						ObjectOutputStream os9=new ObjectOutputStream(outStream9);
-						AckRequest ackRequest9=new AckRequest("AckRequest", lamportClock.getClockValue(), localServerId, newUniversalRequest1);
-						try
+					
+						synchronized(ackList)
 						{
-							os9.writeObject(ackRequest9);
+							if(newUniversalRequest1.getClockValue()>ackList.get(newUniversalRequest1.getServerId()))
+								ackList.set(newUniversalRequest1.getServerId(), newUniversalRequest1.getClockValue()+1);
 						}
-						catch (IOException e)
+
+						for(int k=0; k<serverList.size(); k++)
 						{
-							//e.printStackTrace();
-						}
-						s9.close();
-					}
-
-					synchronized(localQueue)
-					{
-						while(localQueue.size()>0)
-						{
-							int qqClock=localQueue.peek().getClockValue();
-
-							boolean processs=true;
-
-							synchronized(ackList)
+							Socket s9=new Socket(serverList.get(k).getHostName(), serverList.get(k).getServerPort());
+							OutputStream outStream9=s9.getOutputStream();
+							ObjectOutputStream os9=new ObjectOutputStream(outStream9);
+							AckRequest ackRequest9=new AckRequest("AckRequest", lamportClock.getClockValue(), localServerId, newUniversalRequest1);
+							try
 							{
-								for(int i=0; i<ackList.size(); i++)
+								os9.writeObject(ackRequest9);
+							}
+							catch (IOException e)
+							{
+								//e.printStackTrace();
+							}
+							s9.close();
+						}
+
+						synchronized(localQueue)
+						{
+							while(localQueue.size()>0)
+							{
+								int qqClock=localQueue.peek().getClockValue();
+
+								boolean processs=true;
+
+								synchronized(ackList)
 								{
-									if(i!=localServerId)
+									for(int i=0; i<ackList.size(); i++)
 									{
-										if(ackList.get(i)<=qqClock)
+										if(i!=localServerId)
 										{
-											processs=false;
-											break;
+											if(ackList.get(i)<=qqClock)
+											{
+												processs=false;
+												break;
+											}
 										}
 									}
 								}
-							}
 
-							if(processs)
-							{
-								if(localQueue.peek().getOwnRequest())
+								if(processs)
 								{
-									bank.Transfer(localQueue.peek().getTransferRequest().getFromUID(), localQueue.peek().getTransferRequest().getToUID(), localQueue.peek().getTransferRequest().getAmount());
-									//System.out.println("TRANSFER COMPLETE ");
-									fw.println("MULTI-THREADED CLIENT "+"PROCESS "+(new SimpleDateFormat("yyyyMMdd_HHmmss").format(Calendar.getInstance().getTime()))+" "+localQueue.peek().getClockValue()+" "+localQueue.peek().getServerId());
-									fw.flush();
+									if(!localQueue.peek().getIsHalt())
+									{	
+										TransferRequest peekreq = localQueue.peek().getTransferRequest();
+										boolean transferstatus= bank.Transfer(peekreq.getFromUID(), peekreq.getToUID(), peekreq.getAmount());
+										
+										fw.println("MULTI-THREADED CLIENT "+"PROCESS "+(new SimpleDateFormat("yyyyMMdd_HHmmss").format(Calendar.getInstance().getTime()))+" "+localQueue.peek().getClockValue()+" "+localQueue.peek().getServerId());
+										fw.flush();
+										for(int i=1; i<=10; i++)
+										{
+											fw.println("ACC BALANCE: "+bank.GetBalance(i));
+											fw.flush();	
+										}
+
+										if(localQueue.peek().getOwnRequest())
+										{
+											TransferResponse transferresponse=new TransferResponse("TransferResponse", peekreq.getFromUID(), peekreq.getToUID(),peekreq.getAmount(),transferstatus);
+											clResponseList.add(transferresponse);	
+										}
+									}
+									else
+									{
+										System.out.println("HALT ISSUED !!! ");
+										for(int i=0; i<10; i++)
+									    {
+									      System.out.println("The accound "+(i+1)+" has balance: "+bank.GetBalance(i+1));
+									      fw.println("ACC BALANCE: "+"The accound "+(i+1)+" has balance: "+bank.GetBalance(i+1));
+										  fw.flush();
+									    }
+
+									    System.out.println("clientname: "+clientname);
+									    System.out.println("clientport: "+clientport);
+									    Socket outgoing=new Socket("localhost", 9000);
+									    java.io.OutputStream outStreamX=outgoing.getOutputStream();
+										ObjectOutputStream osX=new ObjectOutputStream(outStreamX);
+
+										//for(int x=0; x<clResponseList.size(); x++)
+										osX.writeObject(clResponseList);
+
+										/*
+										if(localServerId==0)
+										{
+											TransferResponse haltresponse=new TransferResponse("HaltResponse", 0, 0, 0, true);
+											osX.writeObject(haltresponse);
+										}*/
+
+										outgoing.close();
+
+									    halt=true;
+									}
+									localQueue.poll();
 								}
 								else
-								{
-									System.out.println("HALT ISSUED !!! ");
-									for(int i=0; i<10; i++)
-								    {
-								      System.out.println("The accound "+(i+1)+" has balance: "+bank.GetBalance(i+1));
-								    }
-								    halt=true;
-								}
-								localQueue.poll();
+									break;
 							}
-							else
-								break;
 						}
 					}
 					break;
@@ -230,58 +274,92 @@ public class AccountHandler implements Runnable
 					synchronized(lamportClock)
 					{
 						lamportClock.setClockValue(Math.max(lamportClock.getClockValue(), ackRequest1.getClockValue())+1);
-					}
-					synchronized(ackList)
-					{
-						if(ackRequest1.getClockValue()>ackList.get(ackRequest1.getServerId()))
-							ackList.set(ackRequest1.getServerId(), ackRequest1.getClockValue());
-					}
-
-					synchronized(localQueue)
-					{
-						while(localQueue.size()>0)
+					
+						synchronized(ackList)
 						{
-							int qClock=localQueue.peek().getClockValue();
+							if(ackRequest1.getClockValue()>ackList.get(ackRequest1.getServerId()))
+								ackList.set(ackRequest1.getServerId(), ackRequest1.getClockValue());
+						}
 
-							boolean process=true;
-
-							synchronized(ackList)
+						synchronized(localQueue)
+						{
+							while(localQueue.size()>0)
 							{
-								for(int i=0; i<ackList.size(); i++)
+								int qClock=localQueue.peek().getClockValue();
+
+								boolean process=true;
+
+								synchronized(ackList)
 								{
-									if(i!=localServerId)
+									for(int i=0; i<ackList.size(); i++)
 									{
-										if(ackList.get(i)<=qClock)
+										if(i!=localServerId)
 										{
-											process=false;
-											break;
+											if(ackList.get(i)<=qClock)
+											{
+												process=false;
+												break;
+											}
 										}
 									}
 								}
-							}
 
-							if(process)
-							{
-								if(localQueue.peek().getOwnRequest())
+								if(process)
 								{
-									bank.Transfer(localQueue.peek().getTransferRequest().getFromUID(), localQueue.peek().getTransferRequest().getToUID(), localQueue.peek().getTransferRequest().getAmount());
-									//System.out.println("TRANSFER COMPLETE ");
-									fw.println("MULTI-THREADED CLIENT "+"PROCESS "+(new SimpleDateFormat("yyyyMMdd_HHmmss").format(Calendar.getInstance().getTime()))+" "+localQueue.peek().getClockValue()+" "+localQueue.peek().getServerId());
-									fw.flush();
+									if(!localQueue.peek().getIsHalt())
+									{
+										TransferRequest peekreq = localQueue.peek().getTransferRequest();
+										boolean transferstatus= bank.Transfer(peekreq.getFromUID(), peekreq.getToUID(), peekreq.getAmount());
+										
+										fw.println("MULTI-THREADED CLIENT "+"PROCESS "+(new SimpleDateFormat("yyyyMMdd_HHmmss").format(Calendar.getInstance().getTime()))+" "+localQueue.peek().getClockValue()+" "+localQueue.peek().getServerId());
+										fw.flush();
+										for(int i=1; i<=10; i++)
+										{
+											fw.println("ACC BALANCE: "+bank.GetBalance(i));
+											fw.flush();	
+										}
+
+										if(localQueue.peek().getOwnRequest())
+										{
+											TransferResponse transferresponse1=new TransferResponse("TransferResponse", peekreq.getFromUID(), peekreq.getToUID(),peekreq.getAmount(),transferstatus);
+											clResponseList.add(transferresponse1);	
+										}
+									}
+									else
+									{
+										System.out.println("HALT ISSUED !!! ");
+										for(int i=0; i<10; i++)
+									    {
+									      System.out.println("The accound "+(i+1)+" has balance: "+bank.GetBalance(i+1));
+									      fw.println("ACC BALANCE: "+"The accound "+(i+1)+" has balance: "+bank.GetBalance(i+1));
+										  fw.flush();
+									    }
+
+									    System.out.println("clientname: "+clientname);
+									    System.out.println("clientport: "+clientport);
+									    Socket outgoing=new Socket("localhost", 9000);
+
+									    java.io.OutputStream outStreamX=outgoing.getOutputStream();
+										ObjectOutputStream osX=new ObjectOutputStream(outStreamX);
+
+										//for(int x=0; x<clResponseList.size(); x++)
+										osX.writeObject(clResponseList);
+
+										
+										/*if(localServerId==0)
+										{
+											TransferResponse haltresponse=new TransferResponse("HaltResponse", 0, 0, 0, true);
+											osX.writeObject(haltresponse);
+										}*/
+
+										outgoing.close();
+									    halt=true;
+									}
+									localQueue.poll();
 								}
 								else
-								{
-									System.out.println("HALT ISSUED !!! ");
-									for(int i=0; i<10; i++)
-								    {
-								      System.out.println("The accound "+(i+1)+" has balance: "+bank.GetBalance(i+1));
-								    }
-								    halt=true;
-								}
-								localQueue.poll();
+									break;
 							}
-							else
-								break;
 						}
 					}
 					break;
@@ -305,7 +383,6 @@ public class AccountHandler implements Runnable
 			{
 				Date currDate=new Date();
 				System.out.println("Average in milliseconds: "+((currDate.getTime()-date.getTime())/2400));
-
 				s.close();
 			}
 		}

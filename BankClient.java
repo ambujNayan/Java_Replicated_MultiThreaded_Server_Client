@@ -9,6 +9,8 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 import java.nio.file.Paths;
 import java.util.*;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 
 public class BankClient
 {
@@ -21,6 +23,15 @@ public class BankClient
 
 		ArrayList<ServerDirectory> serverList=new ArrayList<ServerDirectory>();
 		PrintWriter fw=new PrintWriter("TCPClientLogfile");
+		InetAddress ipAddr=null;
+		try 
+		{
+           	ipAddr=InetAddress.getLocalHost();   
+        } 
+        catch (UnknownHostException ex) 
+        {
+            ex.printStackTrace();
+        }
 
 		while(configFileIn.hasNextLine())
 		{
@@ -40,10 +51,16 @@ public class BankClient
 		// MULTI-THREADED EXECUTION
 		ArrayList<Thread> threadList=new ArrayList<Thread>();
 		{
+			
+			ClientLogger cl=new ClientLogger(fw);
+			Thread ct=new Thread(cl);
+			ct.start();
+			//threadList.add(ct);
+			
 			int k=1;
 			for(int i=0;i<numThreads;i++)
 			{
-				ThreadedEchoClientHandler r=new ThreadedEchoClientHandler(100, serverList, fw);
+				ThreadedEchoClientHandler r=new ThreadedEchoClientHandler(100, serverList, fw, ipAddr);
 				Thread t=new Thread(r);
 				t.start();
 				threadList.add(t);
@@ -67,14 +84,12 @@ public class BankClient
         Thread.sleep(15000);
 
         System.out.println("HALT OPERATION: ");
-		////Socket incoming=new Socket("localhost", serverList.get(0).getServerPort());
-		//java.io.InputStream inStream=incoming.getInputStream();
-	//	java.io.OutputStream outStream=incoming.getOutputStream();
-	//	ObjectOutputStream os=new ObjectOutputStream(outStream);
-		//ObjectInputStream oin=new ObjectInputStream(inStream);
-	//	HaltRequest haltrequest=new HaltRequest("HALT");
-//		os.writeObject(haltrequest);
-//		incoming.close();
-  //      fw.close();
+		Socket incoming=new Socket("localhost", serverList.get(0).getServerPort());
+		java.io.OutputStream outStream=incoming.getOutputStream();
+		ObjectOutputStream os=new ObjectOutputStream(outStream);
+		HaltRequest haltrequest=new HaltRequest("HALT");
+		os.writeObject(haltrequest);
+		incoming.close();
+  		//fw.close();
 	}
 }

@@ -7,18 +7,22 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.io.PrintWriter;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 
 class ThreadedEchoClientHandler implements Runnable
 {
 	private int numOperations;
 	private ArrayList<ServerDirectory> serverList;
 	private PrintWriter fw;
+	private InetAddress ipAddr;
 
-	public ThreadedEchoClientHandler(int numOperations, ArrayList<ServerDirectory> serverList, PrintWriter fw)
+	public ThreadedEchoClientHandler(int numOperations, ArrayList<ServerDirectory> serverList, PrintWriter fw, InetAddress ipAddr)
 	{
 		this.numOperations=numOperations;
 		this.serverList=serverList;
 		this.fw=fw;
+		this.ipAddr= ipAddr;
 	}
 
 	@Override public void run()
@@ -38,12 +42,9 @@ class ThreadedEchoClientHandler implements Runnable
 
 				int fromUID = (int )(Math.random() * 10 + 1);
 				int toUID = (int )(Math.random() * 10 + 1);
-				//java.io.InputStream inStream=incoming.getInputStream();
 				java.io.OutputStream outStream=incoming.getOutputStream();
 				ObjectOutputStream os=new ObjectOutputStream(outStream);
-				//ObjectInputStream oin=new ObjectInputStream(inStream);
-
-				TransferRequest transferrequest=new TransferRequest("TransferRequest", fromUID, toUID, 10);
+				TransferRequest transferrequest=new TransferRequest("TransferRequest", fromUID, toUID, 10, ipAddr, 9000);
 
 				fw.println("MULTI-THREADED CLIENT "+serverId+" "+(new SimpleDateFormat("yyyyMMdd_HHmmss").format(Calendar.getInstance().getTime()))+" TRANSFER "+fromUID+" "+toUID+" "+10);
 				fw.flush();

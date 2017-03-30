@@ -81,7 +81,6 @@ class Bank
 				//	sufficientFunds.await();
 				if(hashtable.get(sourceUID).GetBalance()<amount)
 				{
-					System.out.println("Balance less than asked for transfer");
 					return false;
 				}
 				int sourceAmount=hashtable.get(sourceUID).GetBalance()-amount;
